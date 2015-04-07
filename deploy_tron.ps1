@@ -31,10 +31,33 @@ Version:       1.2.3 / Suppress 7-Zip output (redirect to log file)
 
 Behavior:      Deletes content from seed server; uploads from Master Copy --> seed server; checksums everything, waits for GPG signature, packs files into .exe archive with appropriate version/name; fetches md5sums.txt from repo; checksums .exe pack file; updates md5sums.txt with new hash; deletes current version from repo server; uploads .exe pack and md5sums.txt to repo server; uploads .exe pack to seed server static store; cleans up residual temp files; notifies of completion and advises to restart BT Sync
 #>
-
+#Checks for administrative permissions
+If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+    [Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
+    Write-Warning "You do not have Administrator rights to run this script!`nPlease re-run this script as an Administrator!"
+    Break
+}
 # Are you sure?
 ""
-write-host "Did you stop BT Sync?" -f red
+$chkbt = Get-Process | % {$_.ProcessName -like "BTSync"}
+foreach ($c in $chkbt ){
+    if($c){
+    Write-Warning "BT-Sync is still running"
+    Write-Host "Type OK to stop the process, or when you have stopped it yourself:" -n -f White
+    $ISOK = Read-Host
+    while ($ISOK -notmatch '^OK$'){
+        Write-Warning "BT-Sync is still running"
+        Write-Host "Type OK to stop the process, or when you have stopped it yourself:" -n -f White
+        $ISOK = Read-Host
+    }
+    Write-Host "BT-Sync is still running. Killing process..."
+    if($c){
+        Stop-Process -Name BTSync
+        Continue
+        }
+    }
+}
 ""
 Write-Host -n 'Press any key to continue...';
 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
